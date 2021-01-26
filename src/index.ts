@@ -1,14 +1,13 @@
 import { Search, TwitterClient } from "twitter-api-client";
 import { Disposable } from "@hediet/std/disposable";
 import { EventEmitter } from "@hediet/std/events";
-import * as local from "../local.config.json";
 
 class Main {
 	private readonly twitterClient = new TwitterClient({
-		apiKey: local.apiKey,
-		apiSecret: local.apiSecret,
-		accessToken: local.accessToken,
-		accessTokenSecret: local.accessTokenSecret,
+		apiKey: process.env.API_KEY!,
+		apiSecret: process.env.API_SECRET!,
+		accessToken: process.env.ACCESS_TOKEN!,
+		accessTokenSecret: process.env.ACCESS_TOKEN_SECRET!,
 	});
 
 	private readonly friendsCache = new FriendsCache(this.twitterClient);

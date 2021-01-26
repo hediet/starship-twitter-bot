@@ -3,11 +3,12 @@
 		"target": "es5",
 		"module": "commonjs",
 		"strict": true,
-		"lib": ["ES2015", "DOM"],
+		"lib": ["ES2015"],
 		"outDir": "./dist",
 		"sourceMap": true,
 		"experimentalDecorators": true,
-		"resolveJsonModule": true
+		"resolveJsonModule": true,
+		"rootDir": "./src"
 	},
 	"include": ["./src/**/*"]
 }

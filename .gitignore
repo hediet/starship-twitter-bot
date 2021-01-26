@@ -83,4 +83,4 @@ dist/
 
 tsconfig.tsbuildinfo
 
-local.config.json
+.env.json
