@@ -4,6 +4,19 @@ import { EventEmitter } from "@hediet/std/events";
 import * as Koa from "koa";
 import * as Router from "koa-router";
 import * as json from "koa-json";
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
+
+const file = join(__dirname, "../.env.json");
+if (existsSync(file)) {
+	try {
+		const content = readFileSync(file, { encoding: "utf-8" });
+		const data = JSON.parse(content);
+		Object.assign(process.env, data);
+	} catch (e) {
+		console.warn("Could not read local environment overrides.");
+	}
+}
 
 class Main {
 	private readonly twitterClient = new TwitterClient({
@@ -98,7 +111,7 @@ class Main {
 				`Retweeting tweet "${t.status.text}" by ${t.status.user.screen_name} ("${t.status.user.name}")!`
 			);
 
-			this.lastPostCached.set(0); // avoid immediate retweeting
+			this.lastPostCached.set(new Date().getTime()); // avoid immediate retweeting
 			await this.twitterClient.tweets.statusesRetweetById({ id: t.id });
 		});
 	}
