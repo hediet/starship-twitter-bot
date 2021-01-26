@@ -79,23 +79,37 @@ class Main {
 				return;
 			}
 
-			if (new Date().getTime() - t.createdAt.getTime() > 30 * 60 * 1000) {
+			const tweetCreatedAtMsAgo =
+				new Date().getTime() - t.createdAt.getTime();
+			if (tweetCreatedAtMsAgo > 30 * 60 * 1000) {
 				// this tweet is too old
 				console.log(
-					`Ignoring tweet by ${t.status.user.screen_name} ("${t.status.user.name}") as it is too old.`
+					`Ignoring tweet "${t.status.text}" by ${
+						t.status.user.screen_name
+					} ("${t.status.user.name}") as it is too old (${
+						tweetCreatedAtMsAgo / (1000 * 60)
+					} min).`
 				);
 				return;
 			}
 
-			if (new Date().getTime() - lastPostTimestamp > 60 * 60 * 1000) {
+			const lastPostMsAgo = new Date().getTime() - lastPostTimestamp;
+			if (lastPostMsAgo < 35 * 60 * 1000) {
+				// tweet is too new relative to our last tweet
 				console.log(
-					`Ignoring tweet by ${t.status.user.screen_name} ("${t.status.user.name}") as we already posted about the launch.`
+					`Ignoring tweet "${t.status.text}" by ${
+						t.status.user.screen_name
+					} ("${
+						t.status.user.name
+					}") as we already posted about the launch ${
+						lastPostMsAgo / (1000 * 60)
+					} min ago.`
 				);
 				return;
 			}
 
 			console.log(
-				`Retweeting tweet by ${t.status.user.screen_name} ("${t.status.user.name}")!`
+				`Retweeting tweet "${t.status.text}" by ${t.status.user.screen_name} ("${t.status.user.name}")!`
 			);
 
 			lastPostTimestamp = new Date().getDate();
