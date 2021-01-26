@@ -1,0 +1,13 @@
+{
+	"compilerOptions": {
+		"target": "es5",
+		"module": "commonjs",
+		"strict": true,
+		"lib": ["ES2015", "DOM"],
+		"outDir": "./dist",
+		"sourceMap": true,
+		"experimentalDecorators": true,
+		"resolveJsonModule": true
+	},
+	"include": ["./src/**/*"]
+}
