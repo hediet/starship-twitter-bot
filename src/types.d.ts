@@ -1,5 +1,5 @@
-namespace NodeJS {
-	declare interface ProcessEnv {
+declare namespace NodeJS {
+	interface ProcessEnv {
 		API_KEY: string | undefined;
 		API_SECRET: string | undefined;
 		ACCESS_TOKEN: string | undefined;
