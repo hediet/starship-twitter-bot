@@ -13,6 +13,7 @@ class Main {
 		apiSecret: process.env.API_SECRET!,
 		accessToken: process.env.ACCESS_TOKEN!,
 		accessTokenSecret: process.env.ACCESS_TOKEN_SECRET!,
+		disableCache: true,
 	});
 
 	private readonly friendsCache = new FriendsCache(this.twitterClient);
