@@ -10,13 +10,26 @@
 
 ## About
 
-Whenever a twitter account that this bot is following mentions
-`#StarshipLaunchIn30min` (or `#StarshipLaunchIn20min` or `#StarshipLaunchIn10min`),
-the bot will retweet.
+Whenever a twitter account that this bot is following mentions `#StarshipLaunchIn30min`, this bot will retweet.
 
 However, the bot will not retweet more than one tweet per 45 minutes.
 The bot will only follow trustworthy accounts that don't misuse the retweet mechanism of this bot.
-So it is safe to enable push notifications for this twitter account ([@starship_alarm](https://twitter.com/intent/follow?screen_name=starship_alarm))!
+So it is **safe to enable push notifications for this twitter account** ([@starship_alarm](https://twitter.com/intent/follow?screen_name=starship_alarm))!
+
+## Retweet Conditions
+
+-   The tweeter must be followed by this bot
+-   The tweeter must mention one of the following terms:
+    -   `#StarshipLaunchIn30min` (prefer this one)
+    -   `@starship_alarm`
+    -   `#StarshipLaunchIn25min`
+    -   `#StarshipLaunchIn20min`
+    -   `#StarshipLaunchIn15min`
+    -   `#StarshipLaunchIn10min`
+    -   `#StarshipLaunchIn5min`
+-   The bot must not have posted something 45 minutes earlier
+-   The tweet to retweet must not be a retweet
+-   The bot must find the tweet after 30 minutes (e.g. in case the bot or Twitter is offline for a couple of minutes)
 
 ## Twitter Delay
 

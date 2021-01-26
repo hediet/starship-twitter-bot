@@ -56,6 +56,7 @@ class Main {
 			"#StarshipLaunchIn20min",
 			"#StarshipLaunchIn25min",
 			"#StarshipLaunchIn30min",
+			"@starship_alarm",
 		]);
 
 		searchListener.onTweet.sub(async (t) => {
