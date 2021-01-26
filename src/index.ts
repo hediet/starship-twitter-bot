@@ -5,25 +5,6 @@ import * as Koa from "koa";
 import * as Router from "koa-router";
 import * as json from "koa-json";
 
-class Server {
-	constructor() {
-		const app = new Koa();
-		const router = new Router();
-
-		router.get("/", async (ctx, next) => {
-			ctx.body = { status: "ok" };
-			await next();
-		});
-
-		app.use(json());
-		app.use(router.routes()).use(router.allowedMethods());
-
-		app.listen(8080, () => {
-			console.log("Server listening on port 8080");
-		});
-	}
-}
-
 class Main {
 	private readonly twitterClient = new TwitterClient({
 		apiKey: process.env.API_KEY!,
@@ -40,24 +21,28 @@ class Main {
 		this.run();
 	}
 
+	private screenName: string = "";
+
+	private readonly lastPostCached = new AsyncCache(async () => {
+		const myUserInfo = await this.twitterClient.accountsAndUsers.usersShow({
+			screen_name: this.screenName,
+		});
+		if (!myUserInfo.status) {
+			return 0;
+		}
+		return new Date(myUserInfo.status.created_at).getTime();
+	}, 1000 * 45);
+
 	async run() {
-		const screenName = (
+		this.screenName = (
 			await this.twitterClient.accountsAndUsers.accountSettings()
 		).screen_name;
 		const myUserInfo = await this.twitterClient.accountsAndUsers.usersShow({
-			screen_name: screenName,
+			screen_name: this.screenName,
 		});
 
-		let lastPostTimestamp: number = 0; // in ms
-
-		if (myUserInfo.status) {
-			lastPostTimestamp = new Date(
-				myUserInfo.status.created_at
-			).getTime();
-		}
-
 		console.log(
-			`Using screen name "${screenName}" (id "${myUserInfo.name}")`
+			`Using screen name "${this.screenName}" (id "${myUserInfo.name}")`
 		);
 
 		const searchListener = new SearchListener(this.twitterClient, [
@@ -93,7 +78,8 @@ class Main {
 				return;
 			}
 
-			const lastPostMsAgo = new Date().getTime() - lastPostTimestamp;
+			const lastPostMsAgo =
+				new Date().getTime() - (await this.lastPostCached.get());
 			if (lastPostMsAgo < 35 * 60 * 1000) {
 				// tweet is too new relative to our last tweet
 				console.log(
@@ -112,8 +98,27 @@ class Main {
 				`Retweeting tweet "${t.status.text}" by ${t.status.user.screen_name} ("${t.status.user.name}")!`
 			);
 
-			lastPostTimestamp = new Date().getDate();
+			this.lastPostCached.set(0); // avoid immediate retweeting
 			await this.twitterClient.tweets.statusesRetweetById({ id: t.id });
+		});
+	}
+}
+
+class Server {
+	constructor() {
+		const app = new Koa();
+		const router = new Router();
+
+		router.get("/", async (ctx, next) => {
+			ctx.body = { status: "ok" };
+			await next();
+		});
+
+		app.use(json());
+		app.use(router.routes()).use(router.allowedMethods());
+
+		app.listen(8080, () => {
+			console.log("Server listening on port 8080");
 		});
 	}
 }
@@ -159,10 +164,6 @@ class SearchListener {
 		});
 
 		for (const s of result.statuses) {
-			if (s.id_str === this.sinceIdStr) {
-				continue;
-			}
-
 			const t = new Tweet(s);
 			this._onTweet.emit(t);
 		}
@@ -171,39 +172,53 @@ class SearchListener {
 	}
 }
 
+class AsyncCache<T> {
+	private lastCacheUpdateTimestamp = 0; // in ms
+	private loadOperation: Promise<T> | undefined;
+
+	constructor(
+		private readonly load: () => Promise<T>,
+		private readonly cacheValidityMs: number
+	) {}
+
+	async get(): Promise<T> {
+		if (
+			!this.loadOperation ||
+			new Date().getTime() - this.lastCacheUpdateTimestamp >
+				this.cacheValidityMs
+		) {
+			this.lastCacheUpdateTimestamp = new Date().getTime();
+			this.loadOperation = this.load();
+			try {
+				await this.loadOperation;
+			} catch (e) {
+				console.error("Fetch friends failed: ", e);
+			}
+		}
+
+		return this.loadOperation;
+	}
+
+	public set(value: T): void {
+		this.lastCacheUpdateTimestamp = new Date().getTime();
+		this.loadOperation = Promise.resolve(value);
+	}
+}
+
 class FriendsCache {
-	private cachedFriendIds = new Set<string>();
-	private cachedFriendsTimestamp: number = 0; /* in ms */
-	private cacheUpdate: Promise<void> | undefined;
+	private readonly cache = new AsyncCache(async () => {
+		const friends = await this.twitterClient.accountsAndUsers.friendsList({
+			count: 500,
+			include_user_entities: false,
+		});
+
+		return new Set(friends.users.map((u) => u.id_str));
+	}, 30 * 1000);
 
 	constructor(private readonly twitterClient: TwitterClient) {}
 
 	public async isFriend(id: string): Promise<boolean> {
-		const time = new Date().getTime();
-		if (time - this.cachedFriendsTimestamp > 30 * 1000) {
-			this.cachedFriendsTimestamp = time;
-
-			// Refresh cache every 30 seconds.
-			this.cacheUpdate = this.fetchFriends();
-		}
-		if (this.cacheUpdate) {
-			await this.cacheUpdate;
-		}
-		return this.cachedFriendIds.has(id);
-	}
-
-	private async fetchFriends() {
-		try {
-			const friends = await this.twitterClient.accountsAndUsers.friendsList(
-				{
-					count: 500,
-					include_user_entities: false,
-				}
-			);
-			this.cachedFriendIds = new Set(friends.users.map((u) => u.id_str));
-		} catch (e) {
-			console.error("Fetch friends failed: ", e);
-		}
+		return (await this.cache.get()).has(id);
 	}
 }
 
