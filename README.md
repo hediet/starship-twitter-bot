@@ -4,7 +4,7 @@
 [![](https://img.shields.io/static/v1?style=social&label=Donate&message=%E2%9D%A4&logo=Paypal&color&link=%3Curl%3E)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=ZP5F38L4C88UY&source=url)
 [![](https://img.shields.io/twitter/follow/hediet_dev.svg?style=social)](https://twitter.com/intent/follow?screen_name=hediet_dev)
 
-## Get notified about 30 minutes before a Starship launches by clicking here:
+## Get notified about 30 minutes before a Starship launches by following this bot on Twitter:
 
 [![](https://img.shields.io/twitter/follow/starship_alarm.svg?style=social)](https://twitter.com/intent/follow?screen_name=starship_alarm)
 
@@ -20,7 +20,7 @@ So it is safe to enable push notifications for this twitter account ([@starship_
 
 ## Twitter Delay
 
-Note that Twitter push notifications might have a delay of up to 10 minutes.
+Note that Twitter push notifications might have a delay (I noticed a delay of up to 10 minutes).
 
 ## Deployment
 

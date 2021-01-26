@@ -1,22 +1,11 @@
 import { Search, TwitterClient } from "twitter-api-client";
 import { Disposable } from "@hediet/std/disposable";
 import { EventEmitter } from "@hediet/std/events";
-import * as Koa from "koa";
-import * as Router from "koa-router";
-import * as json from "koa-json";
-import { existsSync, readFileSync } from "fs";
-import { join } from "path";
+import { AsyncCache } from "./AsyncCache";
+import { Server } from "./Server";
+import { setupEnv } from "./setupEnv";
 
-const file = join(__dirname, "../.env.json");
-if (existsSync(file)) {
-	try {
-		const content = readFileSync(file, { encoding: "utf-8" });
-		const data = JSON.parse(content);
-		Object.assign(process.env, data);
-	} catch (e) {
-		console.warn("Could not read local environment overrides.");
-	}
-}
+setupEnv();
 
 class Main {
 	private readonly twitterClient = new TwitterClient({
@@ -37,6 +26,7 @@ class Main {
 	private screenName: string = "";
 
 	private readonly lastPostCached = new AsyncCache(async () => {
+		console.log("Refreshing last post time");
 		const myUserInfo = await this.twitterClient.accountsAndUsers.usersShow({
 			screen_name: this.screenName,
 		});
@@ -77,6 +67,10 @@ class Main {
 				return;
 			}
 
+			function formatMs(ms: number): string {
+				return `${Math.round(ms / (100 * 60)) / 10}`;
+			}
+
 			const tweetCreatedAtMsAgo =
 				new Date().getTime() - t.createdAt.getTime();
 			if (tweetCreatedAtMsAgo > 30 * 60 * 1000) {
@@ -84,9 +78,9 @@ class Main {
 				console.log(
 					`Ignoring tweet "${t.status.text}" by ${
 						t.status.user.screen_name
-					} ("${t.status.user.name}") as it is too old (${
-						tweetCreatedAtMsAgo / (1000 * 60)
-					} min).`
+					} ("${t.status.user.name}") as it is too old (${formatMs(
+						tweetCreatedAtMsAgo
+					)} min).`
 				);
 				return;
 			}
@@ -100,9 +94,9 @@ class Main {
 						t.status.user.screen_name
 					} ("${
 						t.status.user.name
-					}") as we already posted about the launch ${
-						lastPostMsAgo / (1000 * 60)
-					} min ago.`
+					}") as we already posted about the launch ${formatMs(
+						lastPostMsAgo
+					)} min ago.`
 				);
 				return;
 			}
@@ -113,25 +107,6 @@ class Main {
 
 			this.lastPostCached.set(new Date().getTime()); // avoid immediate retweeting
 			await this.twitterClient.tweets.statusesRetweetById({ id: t.id });
-		});
-	}
-}
-
-class Server {
-	constructor() {
-		const app = new Koa();
-		const router = new Router();
-
-		router.get("/", async (ctx, next) => {
-			ctx.body = { status: "ok" };
-			await next();
-		});
-
-		app.use(json());
-		app.use(router.routes()).use(router.allowedMethods());
-
-		app.listen(8080, () => {
-			console.log("Server listening on port 8080");
 		});
 	}
 }
@@ -185,41 +160,10 @@ class SearchListener {
 	}
 }
 
-class AsyncCache<T> {
-	private lastCacheUpdateTimestamp = 0; // in ms
-	private loadOperation: Promise<T> | undefined;
-
-	constructor(
-		private readonly load: () => Promise<T>,
-		private readonly cacheValidityMs: number
-	) {}
-
-	async get(): Promise<T> {
-		if (
-			!this.loadOperation ||
-			new Date().getTime() - this.lastCacheUpdateTimestamp >
-				this.cacheValidityMs
-		) {
-			this.lastCacheUpdateTimestamp = new Date().getTime();
-			this.loadOperation = this.load();
-			try {
-				await this.loadOperation;
-			} catch (e) {
-				console.error("Fetch friends failed: ", e);
-			}
-		}
-
-		return this.loadOperation;
-	}
-
-	public set(value: T): void {
-		this.lastCacheUpdateTimestamp = new Date().getTime();
-		this.loadOperation = Promise.resolve(value);
-	}
-}
-
 class FriendsCache {
 	private readonly cache = new AsyncCache(async () => {
+		console.log("Refreshing friends");
+
 		const friends = await this.twitterClient.accountsAndUsers.friendsList({
 			count: 500,
 			include_user_entities: false,
