@@ -60,7 +60,10 @@ class Main {
 		]);
 
 		searchListener.onTweet.sub(async (t) => {
-			if (t.status.retweeted) {
+			if (
+				((t.status as any) as { retweeted_status: undefined })
+					.retweeted_status
+			) {
 				// It must be an original tweet.
 				return;
 			}
